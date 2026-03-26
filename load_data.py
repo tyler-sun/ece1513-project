@@ -1,6 +1,11 @@
 import os
 import numpy as np
 import librosa
+import torch
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # emotion mapping
 emotion_map = {
@@ -12,16 +17,73 @@ emotion_map = {
     "SAD": 5
 }
 
+# Librosa is a library used for feature extraction allowing for audio analysis, as without it,
+# audio files would be too large to process
+# Find features that can be extracted from the dataset: https://librosa.org/doc/latest/feature.html
+
 def extract_features(file_path):
-    y, sr = librosa.load(file_path, sr=None)
-    
-    # extract MFCC
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+    y, sr = librosa.load(file_path, sr=None) # audio, sample rate returned
+     
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40) # MFCC/Mel Frequency Cepstral Coefficients, short term power spectrum
+    chroma = librosa.feature.chroma_stft(y=y, sr=sr) # pitch
+    spectrogram = librosa.feature.melspectrogram(y=y, sr=sr) # power spectrogram, mel scale
     
     # make all samples same size
     mfcc = np.mean(mfcc.T, axis=0)
+    chroma = np.mean(chroma.T, axis=0)
+    spectrogram = np.mean(spectrogram.T, axis=0)
+
+    features = np.concatenate((mfcc, chroma, spectrogram))
+    return features
+
+
+def visualize_audio_features(file_path, output_dir="feature_plots"):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     
-    return mfcc
+    y, sr = librosa.load(file_path, sr=None)
+    filename = os.path.basename(file_path).replace('.wav', '')
+    
+    # Extract features (without averaging for better visualization)
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+    chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+    spectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+    
+    # Save individual plots
+    fig_mfcc, ax = plt.subplots(figsize=(12, 5))
+    im = ax.imshow(mfcc, aspect='auto', origin='lower', cmap='viridis')
+    ax.set_title(f'MFCC - {filename}', fontsize=12, fontweight='bold')
+    ax.set_ylabel('MFCC Coefficient')
+    ax.set_xlabel('Time Frame')
+    plt.colorbar(im, ax=ax)
+    plt.tight_layout()
+    mfcc_path = os.path.join(output_dir, f"{filename}_mfcc.png")
+    plt.savefig(mfcc_path, dpi=150, bbox_inches='tight')
+    
+    fig_chroma, ax = plt.subplots(figsize=(12, 5))
+    im = ax.imshow(chroma, aspect='auto', origin='lower', cmap='magma')
+    ax.set_title(f'Chroma - {filename}', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Chroma Bin')
+    ax.set_xlabel('Time Frame')
+    plt.colorbar(im, ax=ax)
+    plt.tight_layout()
+    chroma_path = os.path.join(output_dir, f"{filename}_chroma.png")
+    plt.savefig(chroma_path, dpi=150, bbox_inches='tight')
+    
+    fig_spec, ax = plt.subplots(figsize=(12, 5))
+    spectrogram_db = librosa.power_to_db(spectrogram, ref=np.max)
+    im = ax.imshow(spectrogram_db, aspect='auto', origin='lower', cmap='plasma')
+    ax.set_title(f'Mel Spectrogram - {filename}', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Mel Frequency Bin')
+    ax.set_xlabel('Time Frame')
+    plt.colorbar(im, ax=ax)
+    plt.tight_layout()
+    spec_path = os.path.join(output_dir, f"{filename}_spectrogram.png")
+    plt.savefig(spec_path, dpi=150, bbox_inches='tight')
+    
+    print(f"Saved feature plots to {spec_path}")
+    plt.close('all')
 
 
 def load_dataset(data_path):
@@ -46,7 +108,30 @@ def load_dataset(data_path):
 
 
 if __name__ == "__main__":
-    X, y = load_dataset("data/crema")
+    save_to_files = True
+    dataset_path = "AudioWAV"
+    display_visualizations = True
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(torch.cuda.get_device_name(0))
+    print("Load data on device:", device)
 
-    print("X shape:", X.shape)
-    print("y shape:", y.shape)
+    X, y = load_dataset(dataset_path)
+
+    print("Features shape:", X.shape)
+    print("Labels shape:", y.shape)
+    
+    # Visualize first audio sample if flag is true
+    if display_visualizations:
+        print("\nGenerating visualizations for first audio sample...")
+        audio_files = [f for f in os.listdir(dataset_path) if f.endswith(".wav")]
+        if audio_files:
+            first_audio_path = os.path.join(dataset_path, audio_files[0])
+            visualize_audio_features(first_audio_path)
+        else:
+            print("No audio files found in the dataset path.")
+    
+    if save_to_files:
+        # Save to .npy files
+        np.save("features.npy", X)
+        np.save("labels.npy", y)
