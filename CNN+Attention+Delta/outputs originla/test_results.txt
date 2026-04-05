@@ -1,0 +1,17 @@
+Test Loss: 1.0886
+Test Accuracy: 0.6336
+Macro F1: 0.6293
+
+Classification Report:
+              precision    recall  f1-score   support
+
+         ANG     0.6715    0.7244    0.6970       127
+         DIS     0.5714    0.5039    0.5356       127
+         FEA     0.5895    0.4409    0.5045       127
+         HAP     0.7526    0.5703    0.6489       128
+         NEU     0.6434    0.8440    0.7302       109
+         SAD     0.5901    0.7480    0.6597       127
+
+    accuracy                         0.6336       745
+   macro avg     0.6364    0.6386    0.6293       745
+weighted avg     0.6364    0.6336    0.6269       745
