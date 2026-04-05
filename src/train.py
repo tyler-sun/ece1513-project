@@ -1,16 +1,15 @@
 import os
 import random
+import pickle
 import numpy as np
-import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
-from sklearn.utils.class_weight import compute_class_weight
 import matplotlib.pyplot as plt
 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report, log_loss
+from sklearn.preprocessing import StandardScaler
+
 from load_data import build_cache
-from model_cnn import SER_CNN_Attention
+from model_baseline import prepare_features, get_model
 
 
 # =========================
@@ -21,20 +20,21 @@ CACHE_DIR = "cache"
 OUTPUT_DIR = "outputs"
 
 SEED = 42
-BATCH_SIZE = 32
-EPOCHS = 75
-LR = 4e-4
-WEIGHT_DECAY = 1e-4
+BATCH_SIZE = 32   # kept only for same style; not used by logistic regression
+EPOCHS = 90
+LR = 4e-4         # kept only for same style; not used
+WEIGHT_DECAY = 1e-4  # kept only for same style; not used
 
 SR = 16000
 N_MELS = 128
 MAX_LEN = 360
-CROP_LEN = 300
+CROP_LEN = 300    # kept only for same style; not used
 
 NUM_CLASSES = 6
 CLASS_NAMES = ["ANG", "DIS", "FEA", "HAP", "NEU", "SAD"]
 
-MIXUP_ALPHA = 0.10
+MIXUP_ALPHA = 0.10   # kept only for same style; not used
+MIXUP_PROB = 0.35    # kept only for same style; not used
 
 
 # =========================
@@ -43,118 +43,28 @@ MIXUP_ALPHA = 0.10
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-
-# =========================
-# Augmentations
-# =========================
-def spec_augment_3ch(x):
-    x = x.clone()
-    _, n_mels, n_steps = x.shape
-
-    for _ in range(2):
-        f = random.randint(0, 10)
-        if f > 0:
-            f0 = random.randint(0, max(0, n_mels - f))
-            x[:, f0:f0 + f, :] = 0
-
-    for _ in range(2):
-        t = random.randint(0, 20)
-        if t > 0:
-            t0 = random.randint(0, max(0, n_steps - t))
-            x[:, :, t0:t0 + t] = 0
-
-    return x
-
-
-def random_time_shift(x):
-    shift = random.randint(-10, 10)
-    return torch.roll(x, shifts=shift, dims=-1)
-
-
-def mixup_data(x, y, alpha=0.1):
-    lam = np.random.beta(alpha, alpha)
-    index = torch.randperm(x.size(0), device=x.device)
-    return lam * x + (1 - lam) * x[index], y, y[index], lam
-
-
-def mixup_loss(logits, y_a, y_b, lam, criterion):
-    return lam * criterion(logits, y_a) + (1 - lam) * criterion(logits, y_b)
-
-
-# =========================
-# Dataset
-# =========================
-class SERDataset(Dataset):
-    def __init__(self, X, y, mean, std, crop_len, train=False):
-        self.X = X
-        self.y = y
-        self.mean = mean
-        self.std = std
-        self.crop_len = crop_len
-        self.train = train
-
-    def __len__(self):
-        return len(self.X)
-
-    def _crop(self, x):
-        T = x.shape[-1]
-
-        if T <= self.crop_len:
-            pad = self.crop_len - T
-            return np.pad(x, ((0, 0), (0, 0), (0, pad)), mode="constant")
-
-        if self.train:
-            start = np.random.randint(0, T - self.crop_len + 1)
-        else:
-            start = (T - self.crop_len) // 2
-
-        return x[:, :, start:start + self.crop_len]
-
-    def __getitem__(self, idx):
-        x = self._crop(self.X[idx])
-        y = self.y[idx]
-
-        x = (x - self.mean) / (self.std + 1e-8)
-        x = torch.tensor(x, dtype=torch.float32)
-
-        if self.train:
-            if random.random() < 0.75:
-                x = spec_augment_3ch(x)
-            if random.random() < 0.5:
-                x = random_time_shift(x)
-
-        return x, torch.tensor(y, dtype=torch.long)
 
 
 # =========================
 # Eval
 # =========================
-def evaluate(model, loader, criterion, device):
-    model.eval()
-    all_preds, all_true = [], []
-    total_loss = 0.0
+def evaluate(model, X, y):
+    probs = model.predict_proba(X)
+    preds = np.argmax(probs, axis=1)
 
-    with torch.no_grad():
-        for xb, yb in loader:
-            xb, yb = xb.to(device, non_blocking=True), yb.to(device, non_blocking=True)
+    probs = np.clip(probs, 1e-8, 1.0)
+    probs = probs / probs.sum(axis=1, keepdims=True)
 
-            logits = model(xb)
-            loss = criterion(logits, yb)
-            total_loss += loss.item()
-
-            preds = torch.argmax(logits, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_true.extend(yb.cpu().numpy())
+    loss = log_loss(y, probs, labels=np.arange(NUM_CLASSES))
+    acc = accuracy_score(y, preds)
+    f1 = f1_score(y, preds, average="macro")
 
     return (
-        total_loss / len(loader),
-        accuracy_score(all_true, all_preds),
-        f1_score(all_true, all_preds, average="macro"),
-        np.array(all_true),
-        np.array(all_preds),
+        loss,
+        acc,
+        f1,
+        np.array(y),
+        np.array(preds),
     )
 
 
@@ -203,9 +113,6 @@ def main():
     set_seed(SEED)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
-
     X, y, _, _ = build_cache(DATA_PATH, cache_dir=CACHE_DIR, max_len=MAX_LEN)
     print("Loaded X:", X.shape)
     print("Loaded y:", y.shape)
@@ -221,51 +128,23 @@ def main():
     print("Val  :", X_val.shape, y_val.shape)
     print("Test :", X_test.shape, y_test.shape)
 
-    mean = np.mean(X_train, axis=(0, 2, 3)).reshape(3, 1, 1)
-    std = np.std(X_train, axis=(0, 2, 3)).reshape(3, 1, 1)
+    # same sample figure style as deep model
+    plot_sample_spectrograms(X_train, y_train, os.path.join(OUTPUT_DIR, "sample_spectrograms.png"))
 
-    train_ds = SERDataset(X_train, y_train, mean, std, CROP_LEN, train=True)
-    train_eval_ds = SERDataset(X_train, y_train, mean, std, CROP_LEN, train=False)
-    val_ds = SERDataset(X_val, y_val, mean, std, CROP_LEN, train=False)
-    test_ds = SERDataset(X_test, y_test, mean, std, CROP_LEN, train=False)
+    X_train_feat = prepare_features(X_train)
+    X_val_feat = prepare_features(X_val)
+    X_test_feat = prepare_features(X_test)
 
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=0,
-        pin_memory=torch.cuda.is_available(),
-    )
-    train_eval_loader = DataLoader(
-        train_eval_ds,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=torch.cuda.is_available(),
-    )
-    val_loader = DataLoader(
-        val_ds,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=torch.cuda.is_available(),
-    )
-    test_loader = DataLoader(
-        test_ds,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=torch.cuda.is_available(),
-    )
+    scaler = StandardScaler()
+    X_train_feat = scaler.fit_transform(X_train_feat)
+    X_val_feat = scaler.transform(X_val_feat)
+    X_test_feat = scaler.transform(X_test_feat)
 
-    model = SER_CNN_Attention(NUM_CLASSES).to(device)
+    X_train_feat = np.nan_to_num(X_train_feat, nan=0.0, posinf=0.0, neginf=0.0)
+    X_val_feat = np.nan_to_num(X_val_feat, nan=0.0, posinf=0.0, neginf=0.0)
+    X_test_feat = np.nan_to_num(X_test_feat, nan=0.0, posinf=0.0, neginf=0.0)
 
-    weights = compute_class_weight("balanced", classes=np.unique(y_train), y=y_train)
-    weights = torch.tensor(weights, dtype=torch.float32).to(device)
-
-    criterion = nn.CrossEntropyLoss(weight=weights, label_smoothing=0.03)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+    model = get_model(seed=SEED)
 
     best_f1 = 0.0
 
@@ -273,38 +152,14 @@ def main():
     train_accs, val_accs = [], []
     train_f1s, val_f1s = [], []
 
+    best_path = os.path.join(OUTPUT_DIR, "best.pkl")
+
     for epoch in range(EPOCHS):
-        model.train()
-        total_loss = 0.0
-
-        for xb, yb in train_loader:
-            xb, yb = xb.to(device, non_blocking=True), yb.to(device, non_blocking=True)
-
-            if random.random() < 0.6:
-                xb, y_a, y_b, lam = mixup_data(xb, yb, alpha=MIXUP_ALPHA)
-                use_mixup = True
-            else:
-                use_mixup = False
-
-            logits = model(xb)
-
-            if use_mixup:
-                loss = mixup_loss(logits, y_a, y_b, lam, criterion)
-            else:
-                loss = criterion(logits, yb)
-
-            optimizer.zero_grad()
-            loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
-            optimizer.step()
-
-            total_loss += loss.item()
-
-        scheduler.step()
-
-        train_loss = total_loss / len(train_loader)
-        train_eval_loss, train_acc, train_f1, _, _ = evaluate(model, train_eval_loader, criterion, device)
-        val_loss, val_acc, val_f1, _, _ = evaluate(model, val_loader, criterion, device)
+        # one more optimization pass each epoch
+        model.fit(X_train_feat, y_train)
+        
+        train_loss, train_acc, train_f1, _, _ = evaluate(model, X_train_feat, y_train)
+        val_loss, val_acc, val_f1, _, _ = evaluate(model, X_val_feat, y_val)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
@@ -325,13 +180,13 @@ def main():
 
         if val_f1 > best_f1:
             best_f1 = val_f1
-            torch.save(model.state_dict(), os.path.join(OUTPUT_DIR, "best.pt"))
+            with open(best_path, "wb") as f:
+                pickle.dump((model, scaler), f)
 
-    model.load_state_dict(
-        torch.load(os.path.join(OUTPUT_DIR, "best.pt"), map_location=device, weights_only=True)
-    )
+    with open(best_path, "rb") as f:
+        model, scaler = pickle.load(f)
 
-    test_loss, test_acc, test_f1, y_true, y_pred = evaluate(model, test_loader, criterion, device)
+    test_loss, test_acc, test_f1, y_true, y_pred = evaluate(model, X_test_feat, y_test)
     cm = confusion_matrix(y_true, y_pred)
 
     print(f"\nTest Acc: {test_acc:.4f}")
@@ -383,7 +238,6 @@ def main():
     plt.close()
 
     plot_confusion_matrix(cm, os.path.join(OUTPUT_DIR, "confusion_matrix.png"))
-    plot_sample_spectrograms(X_train, y_train, os.path.join(OUTPUT_DIR, "sample_spectrograms.png"))
 
 
 if __name__ == "__main__":
