@@ -1,0 +1,13 @@
+Run seeds: [42, 52, 62, 72, 82]
+Fixed split seed: 42
+
+Run 1 | Seed 42 | Test Accuracy: 0.6309 | Macro F1: 0.6272
+Run 2 | Seed 52 | Test Accuracy: 0.6188 | Macro F1: 0.6153
+Run 3 | Seed 62 | Test Accuracy: 0.6309 | Macro F1: 0.6277
+Run 4 | Seed 72 | Test Accuracy: 0.6215 | Macro F1: 0.6180
+Run 5 | Seed 82 | Test Accuracy: 0.6242 | Macro F1: 0.6198
+
+Average Test Accuracy: 0.6252
+Std Test Accuracy: 0.0049
+Average Macro F1: 0.6216
+Std Macro F1: 0.0050
