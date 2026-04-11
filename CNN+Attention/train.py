@@ -9,8 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 
-# Replace with relative path to dataset
-DATASET_PATH = "../../AudioWAV"
+# replace with relative path to dataset if necessary
+DATASET_PATH = "../AudioWAV"
+ITERATIONS = 5
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 X, y = load_dataset(DATASET_PATH)
@@ -62,58 +63,109 @@ def validate(model, device, val_loader):
     return 100 * correct / total
 
 # Training loop
-train_accs = []
-val_accs = []
-epochs = 50
+epochs = 80
 print(f"Training for {epochs} epochs on device: {device}")
-for epoch in range(epochs):
-    model.train()
-    running_loss = 0
-    correct = 0
-    total = 0
 
-    for X_batch, y_batch in train_loader:
-        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-        optimizer.zero_grad()
-        outputs = model(X_batch)
-        _, predicted = torch.max(outputs, 1)
-        total += y_batch.size(0)
-        correct += (predicted == y_batch).sum().item()
+train_accs_by_iter = np.zeros((ITERATIONS, epochs), dtype=np.float32)
+val_accs_by_iter = np.zeros((ITERATIONS, epochs), dtype=np.float32)
 
-        loss = criterion(outputs, y_batch)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
-    
-    train_accs.append(100 * correct/total)
+test_accs = []
+f1_scores = []
+for iteration in range(ITERATIONS):
+    print("Starting iteration:", iteration + 1, "/", ITERATIONS)
+    print("=" * 50)
 
-    val_acc = validate(model, device, val_loader)
-    val_accs.append(val_acc)
-    
-    print(f"Epoch {epoch+1}/{epochs}, Training Accuracy: {100 * correct / total:.2f}%, Validation Accuracy: {val_acc:.2f}%")
-    scheduler.step(val_acc)
+    model = CNNEmotionRevised(num_classes=6).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5)
 
-plt.figure()
+    for epoch in range(epochs):
+        model.train()
+        correct = 0
+        total = 0
+
+        for X_batch, y_batch in train_loader:
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            _, predicted = torch.max(outputs, 1)
+            total += y_batch.size(0)
+            correct += (predicted == y_batch).sum().item()
+
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
+
+        train_accs_by_iter[iteration, epoch] = 100.0 * correct / total
+
+        val_acc = validate(model, device, val_loader)
+        val_accs_by_iter[iteration, epoch] = val_acc
+
+        print(f"Epoch {epoch+1}/{epochs}, Training Accuracy: {train_accs_by_iter[iteration, epoch]:.2f}%, Validation Accuracy: {val_acc:.2f}%")
+        scheduler.step(val_acc)
+
+    # Testing batch
+    model.eval()
+    all_targets = []
+    all_preds = []
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+            outputs = model(X_batch)
+            _, predicted = torch.max(outputs, 1)
+            all_targets.append(y_batch.cpu().numpy())
+            all_preds.append(predicted.cpu().numpy())
+
+    all_targets = np.concatenate(all_targets)
+    all_preds = np.concatenate(all_preds)
+    test_acc = accuracy_score(all_targets, all_preds) * 100
+    f1 = f1_score(all_targets, all_preds, average="macro")
+
+    print(f"Test Accuracy: {test_acc:.2f}%")
+    print(f"Test F1 score: {f1:.4f}")
+
+    test_accs.append(test_acc)
+    f1_scores.append(f1)
+
+# plot average training and validation curves with standard deviation shading over epochs
+epoch_range = np.arange(1, epochs + 1)
+train_mean = train_accs_by_iter.mean(axis=0)
+train_std = train_accs_by_iter.std(axis=0)
+val_mean = val_accs_by_iter.mean(axis=0)
+val_std = val_accs_by_iter.std(axis=0)
+
+plt.figure(figsize=(10, 6))
+plt.plot(epoch_range, train_mean, label="Training Mean", color="tab:blue")
+plt.fill_between(epoch_range,
+                 train_mean - train_std,
+                 train_mean + train_std,
+                 color="tab:blue",
+                 alpha=0.2,
+                 label="Training Std")
+plt.plot(epoch_range, val_mean, label="Validation Mean", color="tab:orange")
+plt.fill_between(epoch_range,
+                 val_mean - val_std,
+                 val_mean + val_std,
+                 color="tab:orange",
+                 alpha=0.2,
+                 label="Validation Std")
 plt.xlabel("Epoch")
 plt.ylabel("Accuracy (%)")
-plt.title("Training and Validation Curves")
-plt.plot(train_accs, label="Training")
-plt.plot(val_accs, label="Validation")
+plt.title("Training and Validation Mean Accuracy with Std Dev")
 plt.legend(loc="lower right")
 plt.savefig("cnn_1_curves.png")
 
-# Testing batch
-model.eval()
-correct = 0
-total = 0
-with torch.no_grad():
-    for X_batch, y_batch in test_loader:
-        X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-        outputs = model(X_batch)
-        _, predicted = torch.max(outputs, 1)
-        total += y_batch.size(0)
-        correct += (predicted == y_batch).sum().item()
+# plot test accuracy on all iterations
+plt.figure(figsize=(8, 5))
+plt.xlabel("Iteration")
+plt.ylabel("Accuracy (%)")
+plt.title("Test Accuracies Across Iterations")
+plt.plot(range(1, ITERATIONS + 1), test_accs, marker="o", label="Test Accuracies")
+plt.legend(loc="lower right")
+plt.savefig("test_accs.png")
 
-f1 = f1_score(y_batch.cpu().numpy(), predicted.cpu().numpy(), average="macro")
-print(f"Test Accuracy: {100 * correct / total:.2f}%")
-print(f"Test F1 score: {f1: .4f}")
+print("Test accuracies:", test_accs)
+print("Average test accuracy:", np.mean(test_accs))
+print("F1 scores:", f1_scores)
+print("Average test F1 score:", np.mean(f1_scores))
