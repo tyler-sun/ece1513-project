@@ -3,6 +3,10 @@ import torch.nn as nn
 
 
 class SEBlock(nn.Module):
+    """
+    Squeeze-and-Excitation block:
+    learns channel-wise importance weights.
+    """
     def __init__(self, channels: int, reduction: int = 8):
         super().__init__()
         hidden = max(channels // reduction, 8)
@@ -22,6 +26,10 @@ class SEBlock(nn.Module):
 
 
 class ConvBlock(nn.Module):
+    """
+    Basic CNN block:
+    conv -> BN -> ReLU -> conv -> BN -> ReLU -> SE -> pooling -> dropout
+    """
     def __init__(self, in_ch, out_ch, pool_kernel=(2, 2), dropout=0.0):
         super().__init__()
         self.block = nn.Sequential(
@@ -45,8 +53,13 @@ class ConvBlock(nn.Module):
 
 class AttentionStatsPooling(nn.Module):
     """
-    Input: (B, T, D)
-    Output: (B, 3D) = [attention pooled, mean pooled, std pooled]
+    Attention-based statistical pooling.
+
+    Input:
+        (B, T, D)
+
+    Output:
+        (B, 3D) = [attention pooled, mean pooled, std pooled]
     """
     def __init__(self, dim: int):
         super().__init__()
@@ -58,34 +71,48 @@ class AttentionStatsPooling(nn.Module):
         )
 
     def forward(self, x):
-        scores = self.attn(x)                  # (B, T, 1)
-        weights = torch.softmax(scores, dim=1)
-        attn_pool = torch.sum(x * weights, dim=1)     # (B, D)
-        mean_pool = torch.mean(x, dim=1)              # (B, D)
-        std_pool = torch.sqrt(torch.var(x, dim=1, unbiased=False) + 1e-5)  # (B, D)
-        return torch.cat([attn_pool, mean_pool, std_pool], dim=1)  # (B, 3D)
+        scores = self.attn(x)                     # (B, T, 1)
+        weights = torch.softmax(scores, dim=1)   # attention weights
+        attn_pool = torch.sum(x * weights, dim=1)
+        mean_pool = torch.mean(x, dim=1)
+        std_pool = torch.sqrt(torch.var(x, dim=1, unbiased=False) + 1e-5)
+        return torch.cat([attn_pool, mean_pool, std_pool], dim=1)
 
 
 class SER_CNN_Attention(nn.Module):
     """
-    Input: (B, 3, 128, T)
+    Final speech emotion recognition model.
+
+    Input:
+        (B, 3, 128, T)
+
+    Pipeline:
+        CNN feature extractor
+        -> frequency pooling
+        -> BiGRU temporal modeling
+        -> attention/statistical pooling
+        -> classifier
     """
     def __init__(self, num_classes=6, dropout=0.35):
         super().__init__()
 
+        # Initial stem to expand 3-channel input into feature maps
         self.stem = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
         )
 
+        # CNN backbone
         self.block1 = ConvBlock(32, 64, pool_kernel=(2, 2), dropout=0.10)
         self.block2 = ConvBlock(64, 128, pool_kernel=(2, 2), dropout=0.15)
         self.block3 = ConvBlock(128, 256, pool_kernel=(2, 1), dropout=0.20)
         self.block4 = ConvBlock(256, 256, pool_kernel=(2, 1), dropout=0.20)
 
+        # Collapse frequency dimension while keeping time dimension
         self.freq_pool = nn.AdaptiveAvgPool2d((1, None))
 
+        # Bidirectional GRU for temporal modeling
         self.bigru = nn.GRU(
             input_size=256,
             hidden_size=128,
@@ -94,8 +121,10 @@ class SER_CNN_Attention(nn.Module):
             bidirectional=True,
         )
 
+        # Attention-based pooling
         self.pool = AttentionStatsPooling(256)
 
+        # Final classifier
         self.classifier = nn.Sequential(
             nn.LayerNorm(256 * 3),
             nn.Linear(256 * 3, 256),
@@ -115,14 +144,14 @@ class SER_CNN_Attention(nn.Module):
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
-        x = self.block4(x)               # (B,256,F,T')
+        x = self.block4(x)               # (B, 256, F, T')
 
-        x = self.freq_pool(x)            # (B,256,1,T')
-        x = x.squeeze(2)                 # (B,256,T')
-        x = x.transpose(1, 2)            # (B,T',256)
+        x = self.freq_pool(x)            # (B, 256, 1, T')
+        x = x.squeeze(2)                 # (B, 256, T')
+        x = x.transpose(1, 2)            # (B, T', 256)
 
-        x, _ = self.bigru(x)             # (B,T',256)
-        x = self.pool(x)                 # (B,768)
+        x, _ = self.bigru(x)             # (B, T', 256)
+        x = self.pool(x)                 # (B, 768)
 
         x = self.classifier(x)
         return x

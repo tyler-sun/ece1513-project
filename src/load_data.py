@@ -4,6 +4,7 @@ import numpy as np
 import librosa
 
 
+# Map CREMA-D emotion codes to integer labels
 emotion_map = {
     "ANG": 0,
     "DIS": 1,
@@ -16,8 +17,8 @@ emotion_map = {
 
 def parse_cremad_file(filename: str):
     """
-    CREMA-D example:
-    1001_DFA_ANG_XX.wav
+    Parse a CREMA-D filename such as:
+        1001_DFA_ANG_XX.wav
 
     Returns:
         speaker_id (int), emotion_label (int)
@@ -39,6 +40,10 @@ def parse_cremad_file(filename: str):
 
 
 def _pad_or_truncate(feat: np.ndarray, target_len: int):
+    """
+    Pad or truncate feature along the time axis so every sample
+    has the same number of frames.
+    """
     cur_len = feat.shape[1]
 
     if cur_len < target_len:
@@ -55,6 +60,10 @@ def load_audio(
     sr: int = 16000,
     max_samples: int | None = None,
 ):
+    """
+    Load waveform, resample, normalize peak amplitude,
+    and optionally pad/truncate raw waveform length.
+    """
     y, _ = librosa.load(file_path, sr=sr)
 
     peak = np.max(np.abs(y)) + 1e-8
@@ -71,8 +80,11 @@ def load_audio(
 
 def augment_audio(y, sr=16000):
     """
-    Apply waveform augmentation with 50% chance.
-    If augmented, apply exactly ONE transform.
+    Apply light waveform augmentation.
+
+    Strategy:
+    - 50% chance of leaving waveform unchanged
+    - otherwise apply exactly ONE augmentation
     """
     if random.random() < 0.5:
         return y
@@ -115,8 +127,8 @@ def extract_logmel_3ch_from_waveform(
     max_len: int = 360,
 ):
     """
-    Returns 3-channel feature:
-        channel 0: log-mel
+    Extract 3-channel feature representation:
+        channel 0: log-mel spectrogram
         channel 1: delta
         channel 2: delta-delta
 
@@ -153,6 +165,10 @@ def extract_logmel_3ch(
     win_length: int = 1024,
     max_len: int = 360,
 ):
+    """
+    Convenience wrapper:
+    load waveform from file, then extract 3-channel features.
+    """
     y = load_audio(file_path, sr=sr)
     return extract_logmel_3ch_from_waveform(
         y,
@@ -167,11 +183,10 @@ def extract_logmel_3ch(
 
 def build_metadata(data_path: str):
     """
+    Collect file paths and labels from CREMA-D directory.
+
     Returns:
-        paths: (N,)
-        labels: (N,)
-        speakers: (N,)
-        files: (N,)
+        paths, labels, speakers, files
     """
     paths, labels, speakers, files = [], [], [], []
 
@@ -207,13 +222,11 @@ def build_cache(
     max_len: int = 360,
 ):
     """
-    Precompute clean base features and save to cache.
+    Precompute clean features once and save them to disk.
 
-    Returns:
-        X: (N, 3, 128, T)
-        y: (N,)
-        speakers: (N,)
-        files: (N,)
+    This cache is used for:
+    - validation / test
+    - clean train-time evaluation
     """
     os.makedirs(cache_dir, exist_ok=True)
 
