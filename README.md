@@ -22,7 +22,14 @@ Some earlier models which focused more on preprocessing were developed and are r
 
 ### Final Model
 
-(explain how to run final model)
+Download the CREMA-D dataset from Kaggle and place it in the following directory: data/crema
+Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
+
+To train the final model, run:
+```
+python train.py
+```
+All results will be saved in the outputs/ directory, including: trained model weights, training curves and plots, and evaluation results (accuracy, F1-score, etc.).
 
 To run the model on any audio sample, including a self-recorded voice clip, use the run_classification.py script:
 ```
