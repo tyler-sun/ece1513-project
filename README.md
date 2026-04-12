@@ -22,7 +22,8 @@ Some earlier models which focused more on preprocessing were developed and are r
 
 ### Final Model
 
-Download the CREMA-D dataset from Kaggle and place it in the following directory: data/crema.
+Download the CREMA-D dataset from Kaggle and place it in the following directory: 'data/crema'
+
 Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
 
 To train the final model, run:
