@@ -1,4 +1,6 @@
 # final model's training in src/model_cnn.py
+import os
+
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from torch import nn
@@ -12,6 +14,7 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classifi
 # replace with relative path to dataset if necessary
 DATASET_PATH = "../AudioWAV"
 ITERATIONS = 5
+OUTPUT_DIR = "outputs"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 X, y = load_dataset(DATASET_PATH)
@@ -154,7 +157,7 @@ plt.xlabel("Epoch")
 plt.ylabel("Accuracy (%)")
 plt.title("Training and Validation Mean Accuracy with Std Dev")
 plt.legend(loc="lower right")
-plt.savefig("cnn_1_curves.png")
+plt.savefig(os.path.join(OUTPUT_DIR, "cnn_1_curves.png"))
 
 # plot test accuracy on all iterations
 plt.figure(figsize=(8, 5))
@@ -163,9 +166,19 @@ plt.ylabel("Accuracy (%)")
 plt.title("Test Accuracies Across Iterations")
 plt.plot(range(1, ITERATIONS + 1), test_accs, marker="o", label="Test Accuracies")
 plt.legend(loc="lower right")
-plt.savefig("test_accs.png")
+plt.savefig(os.path.join(OUTPUT_DIR, "test_accs.png"))
+
+mean_acc = np.mean(test_accs)
+std_acc = np.std(test_accs)
+mean_f1 = np.mean(f1_scores)
 
 print("Test accuracies:", test_accs)
-print("Average test accuracy:", np.mean(test_accs))
+print("Average test accuracy with std dev:", mean_acc, "+/-", std_acc)
 print("F1 scores:", f1_scores)
-print("Average test F1 score:", np.mean(f1_scores))
+print("Average test F1 score:", mean_f1)
+
+with open(os.path.join(OUTPUT_DIR, "results.txt"), "w") as f:
+    f.write("Test accuracies: " + str(test_accs) + "\n")
+    f.write("Average test accuracy with std dev: " + str(mean_acc) + " +/- " + str(std_acc) + "\n")
+    f.write("F1 scores: " + str(f1_scores) + "\n")
+    f.write("Average test F1 score: " + str(mean_f1) + "\n")

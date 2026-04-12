@@ -1,6 +1,6 @@
 # ece1513-project
 
-Group 4:
+Developed by Group 4:
 - Siddharth Joshi
 - Jingyu Han
 - Tyler Sun
@@ -9,6 +9,13 @@ The following explains setup and usage for Group 4's project, Speech Emotion Rec
 
 ## Setup
 
+Scripts require Python and an environment with the dependencies located in [**requirements.txt**](requirements.txt).
 
+To install all necessary packages in your environment, run in your directory:
+```
+pip install -r requirements.txt
+```
+
+Some earlier models were developed and are run on .ipynb notebooks. To run these, a platform that supports Jupyter will be required.
 
 ## Usage Instructions
