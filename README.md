@@ -34,7 +34,7 @@ To train the final model, run:
 ```
 python train.py
 ```
-All results will be saved in the outputs/ directory, including: trained model weights, training curves and plots, and evaluation results (accuracy, F1-score, etc.).
+All results will be saved in the `outputs` directory, including: trained model weights, training curves and plots, and evaluation results (accuracy, F1-score, etc.).
 
 To run the model on any audio sample, including a self-recorded voice clip if desired, use the run_classification.py script:
 ```
