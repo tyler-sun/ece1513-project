@@ -16,7 +16,11 @@ To install all necessary packages in your environment, run in your directory:
 pip install -r requirements.txt
 ```
 
-Some earlier models which focused more on preprocessing were developed and are run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a platform that supports Jupyter notebooks is required.
+The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
+Store these files in a directory which can be read by the training scripts (ex. 'data\crema').
+Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
+
+Some earlier models that were tested using data focused more on preprocessing were developed and are run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a platform that supports Jupyter notebooks is required, such as Google Colab.
 
 ## Usage Instructions
 
@@ -32,7 +36,7 @@ python train.py
 ```
 All results will be saved in the outputs/ directory, including: trained model weights, training curves and plots, and evaluation results (accuracy, F1-score, etc.).
 
-To run the model on any audio sample, including a self-recorded voice clip, use the run_classification.py script:
+To run the model on any audio sample, including a self-recorded voice clip if desired, use the run_classification.py script:
 ```
 python run_classification.py
 ```

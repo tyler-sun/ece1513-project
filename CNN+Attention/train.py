@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 
 # replace with relative path to dataset if necessary
-DATASET_PATH = "../AudioWAV"
+DATASET_PATH = "data/crema"
 ITERATIONS = 5
 OUTPUT_DIR = "outputs"
 

@@ -23,7 +23,7 @@ from model_cnn import SER_CNN_Attention
 # =========================
 # Config
 # =========================
-DATA_PATH = "AudioWAV"
+DATA_PATH = "data/crema"
 CACHE_DIR = "cache"
 OUTPUT_DIR = "outputs"
 
