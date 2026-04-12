@@ -30,7 +30,7 @@ python run_classification.py
 ```
 The script requires the model to be trained at least once, as it takes in a weights file and also reads normalization statistics (mean, standard deviation) from a file produced while running the model on the training dataset. The paths are configured as outputs\best.pt and outputs\normalization_stats.npz, but relative paths can be adjusted as needed. Running this file on a valid .wav file path will produce a predicted emotion class based off the highest class probability, along with its confidence rating. As the model is trained off CREMA-D samples, differences in recording quality, background noise, and other acoustic factors may impact the accuracy of the prediction.
 
-### Earlier Architectures in Consideration
+### Earlier Models Tested
 
 Earlier versions of the model can be found in the [**Logistic Regression**](<Logistic Regression>), [**CNN + Attention**](CNN+Attention) and [**CNN + Attention + Delta**](CNN+Attention+Delta) folders. Each of these contain a similar set of files to the final model, including a preprocessing script, model code and training script. To run any of the earlier models, navigate to the respective model directory and run train.py - it is recommended to change your current directory before running to avoid overwritting output files from other models. For example, to run the logistic regression baseline:
 ```
