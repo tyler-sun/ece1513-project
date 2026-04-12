@@ -23,7 +23,7 @@ from model_cnn import SER_CNN_Attention
 # =========================
 # Config
 # =========================
-DATA_PATH = "data/crema"
+DATA_PATH = "AudioWAV"
 CACHE_DIR = "cache"
 OUTPUT_DIR = "outputs"
 
@@ -356,6 +356,10 @@ def run_one_experiment(run_idx, seed, X_all, y_all, paths_all, labels_all, devic
     # Compute normalization stats from clean training features only
     mean = np.mean(X_train_clean, axis=(0, 2, 3)).reshape(3, 1, 1)
     std = np.std(X_train_clean, axis=(0, 2, 3)).reshape(3, 1, 1)
+    # Save normalization stats for inference (only once from first run)
+    if run_idx == 0:
+        norm_path = os.path.join(OUTPUT_DIR, "normalization_stats.npz")
+        np.savez(norm_path, mean=mean, std=std)
 
     # Build datasets
     train_ds = TrainWaveformDataset(train_paths, train_labels, mean, std)
@@ -529,8 +533,8 @@ def main():
     idx_train, _, _, _ = train_test_split(
         idx_all, labels_all, test_size=0.2, stratify=labels_all, random_state=SPLIT_SEED
     )
-    plot_sample_spectrograms(X_all[idx_train], labels_all[idx_train],
-                             os.path.join(OUTPUT_DIR, "sample_spectrograms.png"))
+    # plot_sample_spectrograms(X_all[idx_train], labels_all[idx_train],
+    #                         os.path.join(OUTPUT_DIR, "sample_spectrograms.png"))
 
     # Storage for all run outputs
     all_results = []
