@@ -15,21 +15,49 @@ To install all necessary packages in your environment, run in your directory:
 ```
 pip install -r requirements.txt
 ```
+Some earlier models which focused more on preprocessing were developed and are run on .ipynb 
+notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run 
+these, a platform that supports Jupyter notebooks is required, such as Google Colab or 
+JupyterLab. The notebooks rely on the following key libraries:
 
-The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
-Store these files in a directory which can be read by the training scripts (ex. 'data\crema').
-Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
+- **librosa** — audio loading, Mel spectrogram, delta/delta-delta feature extraction
+- **numpy** — tensor manipulation and numerical operations
+- **essentia** — pitch extraction via PredominantPitchMelodia (earlier iterations only)
+- **audiomentations** — waveform-level augmentation (time stretch, pitch shift, noise, shift)
+- **tensorflow / keras** — CNN, CNN-LSTM, ResNet-LSTM, and fusion model training
+- **torch / torchvision** — final model training pipeline
+- **scikit-learn** — train/val/test splitting and label encoding
+- **matplotlib / seaborn** — learning curves and confusion matrix visualisation
+- **pandas** — metadata handling and dataset indexing
+- **tqdm** — progress tracking during batch feature extraction
+
+The notebooks also require access to the CREMA-D dataset, which can be downloaded directly via the Kaggle API using the dataset ID `ejlok1/cremad`. Google Drive is used for saving 
+processed tensors and model checkpoints across sessions.
+
+The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad. Store these files in a directory which can be read by the training scripts (ex. 'data\crema'). Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
 
 Some earlier models that were tested using data focused more on preprocessing were developed and are run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a platform that supports Jupyter notebooks is required, such as Google Colab.
 
 ## Usage Instructions
+### Data Preprocessing Notebooks
+All preprocessing notebooks are designed to run on Google Colab and require a Kaggle API key (`kaggle.json`) for dataset access. Each notebook mounts Google Drive to save outputs 
+across sessions.
+
+**DataPreprocess3D**
+Connects directly to Kaggle to download the CREMA-D dataset and processes all raw `.wav` files into three-channel tensors (Mel spectrogram, MFCC, and pitch). The processed tensors 
+are saved to Google Drive for use in subsequent notebooks. To run, upload your `kaggle.json` when prompted and ensure your Google Drive has sufficient storage for the full tensor dataset.
+
+**DataPreprocess5D**
+Loads the three-channel tensors saved by DataPreprocess3D from Google Drive and extracts additional features (Chroma, Spectral Contrast, and Tonnetz) to produce five-channel tensors. 
+The best model weights and confusion matrix from each training run are saved back to Google Drive.
+
+**DataPreprocessFinal**
+Downloads the CREMA-D dataset fresh from Kaggle and applies the final feature extraction pipeline directly to the raw audio, producing three-channel Mel, delta, and delta-delta 
+tensors. For each training run, model weights, learning curve plots, confusion matrix, and evaluation results are saved to Google Drive. To run, upload your `kaggle.json` when prompted 
+and ensure Google Drive is mounted before executing the training cells.
 
 ### Final Model
-
-Download the CREMA-D dataset from Kaggle and place it in the following directory: `data/crema`
-
-Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
-
+Download the CREMA-D dataset from Kaggle and place it in the following directory: `data/crema`. Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
 To train the final model, run:
 ```
 python train.py
