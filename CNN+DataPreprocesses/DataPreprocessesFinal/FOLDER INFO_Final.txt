@@ -1,0 +1,7 @@
+FOLDER INFO
+
+1. The run1 holds the best weights, confusion matrix and history of the respective model run.
+2. The run2 holds the best weights, confusion matrix and history of the respective model run.
+3. The run3 holds the best weights, confusion matrix and history of the respective model run.
+4. The compiled_avg_confusion_matrix.png is the compiled average matrix.
+5. The compiled_runs_side_by_side.png is the compiled side by side matrix.
