@@ -39,22 +39,6 @@ The dataset used is the audio files of CREMA-D, which are all in .wav formatting
 Some earlier models that were tested using data focused more on preprocessing were developed and are run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a platform that supports Jupyter notebooks is required, such as Google Colab.
 
 ## Usage Instructions
-### Data Preprocessing Notebooks
-All preprocessing notebooks are designed to run on Google Colab and require a Kaggle API key (`kaggle.json`) for dataset access. Each notebook mounts Google Drive to save outputs 
-across sessions.
-
-**DataPreprocess3D**
-Connects directly to Kaggle to download the CREMA-D dataset and processes all raw `.wav` files into three-channel tensors (Mel spectrogram, MFCC, and pitch). The processed tensors 
-are saved to Google Drive for use in subsequent notebooks. To run, upload your `kaggle.json` when prompted and ensure your Google Drive has sufficient storage for the full tensor dataset.
-
-**DataPreprocess5D**
-Loads the three-channel tensors saved by DataPreprocess3D from Google Drive and extracts additional features (Chroma, Spectral Contrast, and Tonnetz) to produce five-channel tensors. 
-The best model weights and confusion matrix from each training run are saved back to Google Drive.
-
-**DataPreprocessFinal**
-Downloads the CREMA-D dataset fresh from Kaggle and applies the final feature extraction pipeline directly to the raw audio, producing three-channel Mel, delta, and delta-delta 
-tensors. For each training run, model weights, learning curve plots, confusion matrix, and evaluation results are saved to Google Drive. To run, upload your `kaggle.json` when prompted 
-and ensure Google Drive is mounted before executing the training cells.
 
 ### Final Model
 Download the CREMA-D dataset from Kaggle and place it in the following directory: `data/crema`. Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
@@ -77,3 +61,19 @@ Earlier versions of the model can be found in the [**Logistic Regression**](<Log
  cd '.\Logisitic Regression\'
  python .\train.py
 ```
+### Data Preprocessing Notebooks
+All preprocessing notebooks are designed to run on Google Colab and require a Kaggle API key (`kaggle.json`) for dataset access. Each notebook mounts Google Drive to save outputs 
+across sessions.
+
+**DataPreprocess3D**
+Connects directly to Kaggle to download the CREMA-D dataset and processes all raw `.wav` files into three-channel tensors (Mel spectrogram, MFCC, and pitch). The processed tensors 
+are saved to Google Drive for use in subsequent notebooks. To run, upload your `kaggle.json` when prompted and ensure your Google Drive has sufficient storage for the full tensor dataset.
+
+**DataPreprocess5D**
+Loads the three-channel tensors saved by DataPreprocess3D from Google Drive and extracts additional features (Chroma, Spectral Contrast, and Tonnetz) to produce five-channel tensors. 
+The best model weights and confusion matrix from each training run are saved back to Google Drive.
+
+**DataPreprocessFinal**
+Downloads the CREMA-D dataset fresh from Kaggle and applies the final feature extraction pipeline directly to the raw audio, producing three-channel Mel, delta, and delta-delta 
+tensors. For each training run, model weights, learning curve plots, confusion matrix, and evaluation results are saved to Google Drive. To run, upload your `kaggle.json` when prompted 
+and ensure Google Drive is mounted before executing the training cells.
