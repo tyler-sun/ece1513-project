@@ -16,7 +16,7 @@ To install all necessary packages in your environment, run in your directory:
 pip install -r requirements.txt
 ```
 The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
-Store these files in a directory which can be read by the training scripts (ex. 'data\crema').Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
+Store these files in a directory which can be read by the training scripts (ex. 'data\crema').
 
 Some earlier models focused more on preprocessing were developed and run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a 
 platform that supports Jupyter notebooks is required, such as Google Colab. The notebooks rely on the following key libraries:
@@ -37,7 +37,7 @@ processed tensors and model checkpoints across sessions.
 ## Usage Instructions
 
 ### Final Model
-Download the CREMA-D dataset from Kaggle and place it in the following directory: `data/crema`. Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
+The final model and its training script is located in [**src**](src). Download the CREMA-D dataset from Kaggle and place it in the following directory: `data/crema`. Ensure that the `src` folder is located at the same level as the `data` folder so that all scripts can correctly access the dataset.
 To train the final model, run:
 ```
 python train.py
@@ -52,7 +52,7 @@ The script requires the model to be trained at least once, as it takes in a weig
 
 ### Earlier Models Tested
 
-Earlier versions of the model can be found in the [**Logistic Regression**](<Logistic Regression>), [**CNN + Attention**](CNN+Attention) and [**CNN + Attention + Delta**](CNN+Attention+Delta) folders. Each of these contain a similar set of files to the final model, including a preprocessing script, model code and training script. To run any of the earlier models, navigate to the respective model directory and run train.py - it is recommended to change your current directory before running to avoid overwritting output files from other models. For example, to run the logistic regression baseline:
+A baseline model can be found in [**Logistic Regression**](<Logistic Regression>), and an earlier CNN model (CNN + Attention in the report) can be found in the [**CNN + Attention**](CNN+Attention) folders. Each of these contain a similar set of files to the final model, including a preprocessing script, model code and training script. To run any of the earlier models, navigate to the respective model directory and run train.py - it is recommended to change your current directory before running to avoid overwritting output files from other models. For example, to run the logistic regression baseline:
 ```
  cd '.\Logisitic Regression\'
  python .\train.py
