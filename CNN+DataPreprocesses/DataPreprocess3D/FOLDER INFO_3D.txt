@@ -1,0 +1,5 @@
+FOLDER INFO
+
+1. The Fusion_Model_Best holds the best weights and metadata of the model.
+2. The CREMA-D_Metadata.csv is the master index for the 3D tensor saved as num.py files,
+3. The best_emotion_model.h5 is the best weights for the respective model.
