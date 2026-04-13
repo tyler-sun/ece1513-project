@@ -15,16 +15,11 @@ To install all necessary packages in your environment, run in your directory:
 ```
 pip install -r requirements.txt
 ```
-The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can 
-be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
-Store these files in a directory which can be read by the training scripts (ex. 'data\crema').
-Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
+The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
+Store these files in a directory which can be read by the training scripts (ex. 'data\crema').Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
 
-Some earlier models focused more on preprocessing were developed and run on .ipynb notebooks, 
-which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a 
-platform that supports Jupyter notebooks is required, such as Google Colab. The notebooks 
-rely on the following key libraries:
-
+Some earlier models focused more on preprocessing were developed and run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a 
+platform that supports Jupyter notebooks is required, such as Google Colab. The notebooks rely on the following key libraries:
 - **librosa** — audio loading, Mel spectrogram, delta/delta-delta feature extraction
 - **numpy** — tensor manipulation and numerical operations
 - **essentia** — pitch extraction via PredominantPitchMelodia (earlier iterations only)
@@ -38,10 +33,6 @@ rely on the following key libraries:
 
 The notebooks also require access to the CREMA-D dataset, which can be downloaded directly via the Kaggle API using the dataset ID `ejlok1/cremad`. Google Drive is used for saving 
 processed tensors and model checkpoints across sessions.
-
-The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad. Store these files in a directory which can be read by the training scripts (ex. 'data\crema'). Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
-
-Some earlier models that were tested using data focused more on preprocessing were developed and are run on .ipynb notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a platform that supports Jupyter notebooks is required, such as Google Colab.
 
 ## Usage Instructions
 
