@@ -1,0 +1,4 @@
+FOLDER INFO
+
+1. The CREMA_5CH_Attention_Best holds the best weights and metadata of the respective model.
+2. The CREMA_5CH_Best_GPU holds the best weights and metadata of the respective model.
