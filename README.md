@@ -15,17 +15,22 @@ To install all necessary packages in your environment, run in your directory:
 ```
 pip install -r requirements.txt
 ```
-Some earlier models which focused more on preprocessing were developed and are run on .ipynb 
-notebooks, which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run 
-these, a platform that supports Jupyter notebooks is required, such as Google Colab or 
-JupyterLab. The notebooks rely on the following key libraries:
+The dataset used is the audio files of CREMA-D, which are all in .wav formatting and can 
+be downloaded from Kaggle: https://www.kaggle.com/datasets/ejlok1/cremad  
+Store these files in a directory which can be read by the training scripts (ex. 'data\crema').
+Alternatively, the dataset can be accessed with a Kaggle API key if accessible.
+
+Some earlier models focused more on preprocessing were developed and run on .ipynb notebooks, 
+which can be found in [**CNN+DataPreprocesses**](CNN+DataPreprocesses). To run these, a 
+platform that supports Jupyter notebooks is required, such as Google Colab. The notebooks 
+rely on the following key libraries:
 
 - **librosa** — audio loading, Mel spectrogram, delta/delta-delta feature extraction
 - **numpy** — tensor manipulation and numerical operations
 - **essentia** — pitch extraction via PredominantPitchMelodia (earlier iterations only)
 - **audiomentations** — waveform-level augmentation (time stretch, pitch shift, noise, shift)
 - **tensorflow / keras** — CNN, CNN-LSTM, ResNet-LSTM, and fusion model training
-- **torch / torchvision** — final model training pipeline
+- **torch** — final notebook training pipeline
 - **scikit-learn** — train/val/test splitting and label encoding
 - **matplotlib / seaborn** — learning curves and confusion matrix visualisation
 - **pandas** — metadata handling and dataset indexing
@@ -61,7 +66,7 @@ Earlier versions of the model can be found in the [**Logistic Regression**](<Log
  cd '.\Logisitic Regression\'
  python .\train.py
 ```
-### Data Preprocessing Notebooks
+### Data Preprocessing Models/Notebooks
 All preprocessing notebooks are designed to run on Google Colab and require a Kaggle API key (`kaggle.json`) for dataset access. Each notebook mounts Google Drive to save outputs 
 across sessions.
 
